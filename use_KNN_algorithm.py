@@ -28,7 +28,7 @@ def use_KNN_algorithm(basic_data, test_data):
             range_index_label = label_data[show_sorted_index_result[range_index]]
             test_item_label_count[range_index_label] = test_item_label_count.get(range_index_label, 0) + 1
         
-        sorted_test_item_label = sorted(test_item_label_count.iteritems(), key=operator.itemgetter(1), reverse=True)
+        sorted_test_item_label = sorted(test_item_label_count.items(), key=operator.itemgetter(1), reverse=True)
         print(sorted_test_item_label)
 
 
