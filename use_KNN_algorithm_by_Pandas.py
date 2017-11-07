@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import operator
 
 
@@ -9,18 +10,18 @@ def load_data_file(file_name):
 
 def use_KNN_algorithm(basic_data, test_data):
     collect_data, label_data = collectiong_data(basic_data)
-    row_len = collect_data.shape[0]
+    frame_size = collect_data.shape
 
     artument_K = 10
 
-    test_data_narray = test_data.as_matrix(columns=basic_data.columns[1:-1])
-    for test_item in test_data_narray:
-        diff_data = np.tile(test_item, (row_len, 1)) - collect_data
+    test_collect_data, test_label_data = collectiong_data(test_data)
+    for test_item in test_collect_data.values:
+        diff_data = collect_data - test_item
         square_diff_data = diff_data ** 2
         sum_square_diff_data = square_diff_data.sum(axis=1)
         calculate_result_data = sum_square_diff_data ** 0.5
         show_sorted_index_result = calculate_result_data.argsort()
-
+        
         test_item_label_count = {}
 
         for range_index in range(artument_K):
@@ -32,17 +33,22 @@ def use_KNN_algorithm(basic_data, test_data):
 
 
 def collectiong_data(basic_data):
-    basic_data_narray = basic_data.as_matrix(columns=basic_data.columns[1:-1])
+    num_value_frame = basic_data.ix[:, 0:3]
+    label_frame = basic_data.ix[:, 4]
 
-    min_val = basic_data_narray.min(0)
-    max_val = basic_data_narray.max(0)
-    row_len = basic_data_narray.shape[0]
+    min_val = num_value_frame.min()
+    max_val = num_value_frame.max()
+    frame_size = num_value_frame.shape
+    empty_arrays = np.zeros(frame_size)
+    min_data_frame = pd.DataFrame(empty_arrays)
 
-    molecular = basic_data_narray - np.tile(min_val, (row_len, 1))    
-    denominator = np.tile(max_val - min_val, (row_len, 1))
+    min_data_frame.loc[:, :] = min_val.values
+    molecular = num_value_frame - min_data_frame
+    denominator = pd.DataFrame(empty_arrays)
+    denominator.loc[:, :] = (max_val - min_val).values
 
     collect_data = molecular / denominator
-    return collect_data, basic_data[4]
+    return collect_data, label_frame
 
 
 if __name__ == '__main__':
@@ -50,5 +56,5 @@ if __name__ == '__main__':
     bezdekIris_frame = load_data_file(file_name_list[0])
     iris_frame = load_data_file(file_name_list[1])
 
-    print(bezdekIris_frame)
+    use_KNN_algorithm(bezdekIris_frame, iris_frame)
 
