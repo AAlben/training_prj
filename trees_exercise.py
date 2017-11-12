@@ -108,6 +108,36 @@ class trees_exercise_iteration(object):
         return my_tree
         
 
+class use_trees_classify(object):
+    def __init__(self):
+        pass
+
+    def classify(self, input_tree, test_vec):
+        first_node = list(input_tree.keys())[0]
+        # first_node = 0
+
+        second_dict = input_tree[first_node]
+        '''
+        second_dict = {
+            0: 'no',
+            1: {
+                1列: {
+                    0: 'no',
+                    1: 'yes'
+                }
+            }
+        }
+        '''
+
+        vec_value = test_vec[first_node]
+        vec_value_result = second_dict[vec_value]
+        if isinstance(vec_value_result, dict):
+            class_label = self.classify(vec_value_result, test_vec)
+        else:
+            class_label = vec_value_result
+        return class_label
+
+
 if __name__ == '__main__':
     dataSet, labels = createDataSet()
     '''
@@ -149,5 +179,12 @@ if __name__ == '__main__':
     }
     '''
 
+    use_trees_classify_obj = use_trees_classify()
+    test_vec = [1, 0]
+    test_vec = [0]
+    test_vec = [1, 1]
+    # test_vec = [1]
+    classify_result = use_trees_classify_obj.classify(my_tree, test_vec)
+    print(classify_result)
 
 
