@@ -203,7 +203,7 @@ if __name__ == '__main__':
 
     test_entry_list = [
                         ['love', 'my', 'dalmation'],
-                        ['stupid', 'garbage'],
+                        ['stupid', 'garbage']
     ]
 
     for test_entry in test_entry_list:
