@@ -1,4 +1,5 @@
 import numpy as np
+import os
 
 
 def loadDataSet():
@@ -29,6 +30,17 @@ def set_of_words_to_vec(vocab_list, input_set):
             return_vec[vocab_list.index(word)] = 1
         else:
             print('the word: {0} is not in my Vocabulary!'.format(word))
+    return return_vec
+
+
+def bag_of_words_to_vec_MN(vocab_list, input_set):
+    return_vec = [0] * len(vocab_list)
+    # return_vec = [0, 0, 0, 0, 0, 0... ]
+
+    for word in input_set:
+        # input_set = ['my', 'dog', 'has', 'flea', 'problems', 'help', 'please']
+        if word in vocab_list:
+            return_vec[vocab_list.index(word)] += 1
     return return_vec
 
 
@@ -167,46 +179,102 @@ def classify_NB(vec_to_classify, p0_vect, p1_vect, p_class1):
         return 0
 
 
+class ClassifySpam(object):
+    def __init__(self):
+        pass
+
+    def textParse(self, content):
+        import re
+        list_of_tokens = re.split(r'\W*', content)
+        return [tok.lower() for tok in list_of_tokens if len(tok) > 2]
+
+
+    def spam_test(self):
+        import random
+        doc_list = []
+        class_list = []
+        full_text = []
+
+        email_file_path = '/home/alben/code/git_code/machinelearninginaction_git_version/Ch04'
+
+        for i in range(1, 26):
+            word_list = self.textParse(open(os.path.join(email_file_path, 'email/spam/%d.txt' % i)).read())
+            doc_list.append(word_list)
+            full_text.append(word_list)
+            class_list.append(1)
+
+            word_list = self.textParse(open(os.path.join(email_file_path, 'email/ham/%d.txt' % i)).read())
+            doc_list.append(word_list)
+            full_text.append(word_list)
+            class_list.append(0)
+
+        vocab_list = create_vocab_list(doc_list)
+        training_set = range(50)
+        test_set = []
+
+        for i in range(10):
+            rand_index = int(random.uniform(0, len(training_set)))
+            test_set.append(training_set[rand_index])
+            del(training_set[rand_index])
+
+        train_mat = []
+        train_classes = []
+
+        print(test_set)
+
+        for doc_index in training_set:
+            train_mat.append(bag_of_words_to_vec_MN(vocab_list, doc_list[doc_index]))
+        pass
+
+
 if __name__ == '__main__':
-    postingList, classVec = loadDataSet()
-    '''
-    postingList = [['my', 'dog', 'has', 'flea', 'problems', 'help', 'please'], ....]
-    classVec = [0, 1, 0, 1, 0, 1] 
-    '''
-    vocab_list = create_vocab_list(postingList)
-    # vocab_list = ['cute', 'love', 'help', 'garbage', 'quit', 'I', 'problems', ....]
+    classify_words_flag = False
+    classify_file_flag = True
 
-    train_matrix = []
+    if classify_words_flag:
+        postingList, classVec = loadDataSet()
+        '''
+        postingList = [['my', 'dog', 'has', 'flea', 'problems', 'help', 'please'], ....]
+        classVec = [0, 1, 0, 1, 0, 1] 
+        '''
+        vocab_list = create_vocab_list(postingList)
+        # vocab_list = ['cute', 'love', 'help', 'garbage', 'quit', 'I', 'problems', ....]
 
-    for posting in postingList:
-        return_vec = set_of_words_to_vec(vocab_list, posting)
-        train_matrix.append(return_vec)
+        train_matrix = []
 
-    p0_vect, p1_vect, p_abusive = trainNB0(np.array(train_matrix), np.array(classVec))
+        for posting in postingList:
+            return_vec = set_of_words_to_vec(vocab_list, posting)
+            train_matrix.append(return_vec)
 
-    '''
-    p0_vect = 
-    [-2.56494936 -2.56494936 -2.56494936 -3.25809654 -3.25809654 -2.56494936
-     -2.56494936 -2.56494936 -3.25809654 -2.56494936 -2.56494936 -2.56494936
-     -2.56494936 -3.25809654 -3.25809654 -2.15948425 -3.25809654 -3.25809654
-     -2.56494936 -3.25809654 -2.56494936 -2.56494936 -3.25809654 -2.56494936
-     -2.56494936 -2.56494936 -3.25809654 -2.56494936 -3.25809654 -2.56494936
-     -2.56494936 -1.87180218]
-    p1_vect = 
-    [-3.04452244 -3.04452244 -3.04452244 -2.35137526 -2.35137526 -3.04452244
-     -3.04452244 -3.04452244 -2.35137526 -2.35137526 -3.04452244 -3.04452244
-     -3.04452244 -2.35137526 -2.35137526 -2.35137526 -2.35137526 -2.35137526
-     -3.04452244 -1.94591015 -3.04452244 -2.35137526 -2.35137526 -3.04452244
-     -1.94591015 -3.04452244 -1.65822808 -3.04452244 -2.35137526 -3.04452244
-     -3.04452244 -3.04452244]   
-    '''
+        p0_vect, p1_vect, p_abusive = trainNB0(np.array(train_matrix), np.array(classVec))
 
-    test_entry_list = [
-                        ['love', 'my', 'dalmation'],
-                        ['stupid', 'garbage']
-    ]
+        '''
+        p0_vect = 
+        [-2.56494936 -2.56494936 -2.56494936 -3.25809654 -3.25809654 -2.56494936
+         -2.56494936 -2.56494936 -3.25809654 -2.56494936 -2.56494936 -2.56494936
+         -2.56494936 -3.25809654 -3.25809654 -2.15948425 -3.25809654 -3.25809654
+         -2.56494936 -3.25809654 -2.56494936 -2.56494936 -3.25809654 -2.56494936
+         -2.56494936 -2.56494936 -3.25809654 -2.56494936 -3.25809654 -2.56494936
+         -2.56494936 -1.87180218]
+        p1_vect = 
+        [-3.04452244 -3.04452244 -3.04452244 -2.35137526 -2.35137526 -3.04452244
+         -3.04452244 -3.04452244 -2.35137526 -2.35137526 -3.04452244 -3.04452244
+         -3.04452244 -2.35137526 -2.35137526 -2.35137526 -2.35137526 -2.35137526
+         -3.04452244 -1.94591015 -3.04452244 -2.35137526 -2.35137526 -3.04452244
+         -1.94591015 -3.04452244 -1.65822808 -3.04452244 -2.35137526 -3.04452244
+         -3.04452244 -3.04452244]   
+        '''
 
-    for test_entry in test_entry_list:
-        return_vec = set_of_words_to_vec(vocab_list, test_entry)
-        classified_result = classify_NB(return_vec, p0_vect, p1_vect, p_abusive)
-        print(classified_result)
+        test_entry_list = [
+                            ['love', 'my', 'dalmation'],
+                            ['stupid', 'garbage']
+        ]
+
+        for test_entry in test_entry_list:
+            return_vec = set_of_words_to_vec(vocab_list, test_entry)
+            classified_result = classify_NB(return_vec, p0_vect, p1_vect, p_abusive)
+            print(classified_result)
+
+    if classify_file_flag:
+        classify_spam = ClassifySpam()
+        classify_spam.spam_test()
