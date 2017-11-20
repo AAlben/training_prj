@@ -195,7 +195,7 @@ class ClassifySpam(object):
         class_list = []
         full_text = []
 
-        email_file_path = '/home/alben/code/git_code/machinelearninginaction_git_version/Ch04'
+        email_file_path = '/home/lichenguang/code/Bayes_Data/email'
 
         for i in range(1, 26):
             word_list = self.textParse(open(os.path.join(email_file_path, 'email/spam/%d.txt' % i)).read())
