@@ -186,7 +186,7 @@ class ClassifySpam(object):
     def textParse(self, content):
         import re
         # content = unicode(content, errors='ignore')
-        list_of_tokens = re.split(r'\W*', content.decode('utf-8', 'ignore'))
+        list_of_tokens = re.split(r'\W*', content)
         return [tok.lower() for tok in list_of_tokens if len(tok) > 2]
 
 
@@ -202,7 +202,7 @@ class ClassifySpam(object):
             word_list = None
             file_name = os.path.join(email_file_path, 'email/spam/{0}.txt'.format(i))
             with open(file_name, 'rb') as fp:
-              word_list = self.textParse(fp.read())
+              word_list = self.textParse(fp.read().decode('utf-8', 'ignore'))
             doc_list.append(word_list)
             full_text.append(word_list)
             class_list.append(1)
@@ -210,7 +210,7 @@ class ClassifySpam(object):
             word_list = None
             file_name = os.path.join(email_file_path, 'email/ham/{0}.txt'.format(i))
             with open(file_name, 'rb') as fp:
-              word_list = self.textParse(fp.read())
+              word_list = self.textParse(fp.read().decode('utf-8', 'ignore'))
 
             doc_list.append(word_list)
             full_text.append(word_list)
@@ -263,9 +263,97 @@ class ClassifySpam(object):
           print('the error rate is {0}'.format(1.0 * error_count / len(test_set)))
 
 
+class ClassifyRSSWords(object):
+    def __init__(self):
+        self.classify_spam = ClassifySpam()
+
+
+    def requests_rss_source(self):
+        import feedparser
+        newyork_url = 'http://newyork.craigslist.org/stp/index.rss'
+        sfbay_url = 'http://sfbay.craigslist.org/stp/index.rss'
+
+        newyork_parse_result = feedparser.parse(newyork_url)
+        sfbay_parse_result = feedparser.parse(sfbay_url)
+
+        self.local_words(newyork_parse_result, sfbay_parse_result)
+
+
+    def calc_most_freq(self, vocab_list, full_text):
+        import operator
+
+        freq_dict = {}
+        for token in vocab_list:
+            freq_dict[token] = full_text.count(token)
+        sorted_freq = sorted(freq_dict.items(), key=operator.itemgetter(1), reverse=True)
+        return sorted_freq[:30]
+
+
+    def local_words(self, feed1, feed0):
+        import feedparser
+        import random
+
+        doc_list = []
+        class_list = []
+        full_text = []
+
+        min_len = min(len(feed1['entries']), len(feed0['entries']))
+
+        for i in range(min_len):
+            word_list = self.classify_spam.textParse(feed1['entries'][i]['summary'])
+            doc_list.append(word_list)
+            full_text.append(word_list)
+            class_list.append(1)
+
+            word_list = self.classify_spam.textParse(feed0['entries'][i]['summary'])
+            doc_list.append(word_list)
+            full_text.append(word_list)
+            class_list.append(0)
+
+        vocab_list = create_vocab_list(doc_list)
+        top_30_words = self.calc_most_freq(vocab_list, full_text)
+        '''
+        top_30_words = 
+        [('attracted', 0), ('minded', 0), ('title', 0), ('short', 0), ('together', 0), 
+         ('was', 0), ('not', 0), ('country', 0), ('photo', 0), ('process', 0), ('ddf', 0), 
+         ('black', 0), ('get', 0), ('find', 0), ('new', 0), ('dicks', 0), ('decade', 0), 
+         ('native', 0), ('person', 0), ('either', 0), ('saving', 0), ('honest', 0), 
+         ('feeling', 0), ('even', 0), ('drugs', 0), ('company', 0), ('cool', 0), ('won', 0), 
+         ('try', 0), ('needed', 0)
+        ]
+        '''
+        for pair_words in top_30_words:
+            if pair_words[0] in vocab_list:
+                vocab_list.remove(pair_words[0])
+
+        training_set = set(range(2 * min_len))
+        test_set = []
+        test_set.extend(random.sample(training_set, 20))
+
+        train_mat = []
+        train_classes = []
+        for doc_index in training_set:
+            if doc_index in test_set:
+                continue
+            train_mat.append(bag_of_words_to_vec_MN(vocab_list, doc_list[doc_index]))
+            train_classes.append(class_list[doc_index])
+
+        p0_vect, p1_vect, p_abusive = trainNB0(np.array(train_mat), np.array(train_classes))
+        error_count = 0
+
+        for doc_index in test_set:
+            word_vector = bag_of_words_to_vec_MN(vocab_list, doc_list[doc_index])
+            if classify_NB(np.array(word_vector), p0_vect, p1_vect, p_abusive) != class_list[doc_index]:
+                error_count += 1
+                print('this classify is error!!! must be {0}'.format(class_list[doc_index]))
+
+        print('the error rate is {0}'.format(1.0 * error_count / len(test_set)))
+
+
 if __name__ == '__main__':
     classify_words_flag = False
-    classify_file_flag = True
+    classify_file_flag = False
+    classify_rss_flag = True
 
     if classify_words_flag:
         postingList, classVec = loadDataSet()
@@ -314,3 +402,7 @@ if __name__ == '__main__':
     if classify_file_flag:
         classify_spam = ClassifySpam()
         classify_spam.spam_test()
+
+    if classify_rss_flag:
+        classify_rss_words = ClassifyRSSWords()
+        classify_rss_words.requests_rss_source()
