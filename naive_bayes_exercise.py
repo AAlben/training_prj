@@ -186,7 +186,7 @@ class ClassifySpam(object):
     def textParse(self, content):
         import re
         # content = unicode(content, errors='ignore')
-        list_of_tokens = re.split(r'\W*', content.encode('utf-8'))
+        list_of_tokens = re.split(r'\W*', content.decode('utf-8', 'ignore'))
         return [tok.lower() for tok in list_of_tokens if len(tok) > 2]
 
 
@@ -199,43 +199,66 @@ class ClassifySpam(object):
         email_file_path = '/home/lichenguang/code/Bayes_Data'
 
         for i in range(1, 26):
-            # word_list = self.textParse(open(os.path.join(email_file_path, 'email/spam/{0}.txt'.format(i))).read())
-
+            word_list = None
             file_name = os.path.join(email_file_path, 'email/spam/{0}.txt'.format(i))
-            file_obj = open(file_name, 'rb')
-            word_list = self.textParse(file_obj.read())
-
+            with open(file_name, 'rb') as fp:
+              word_list = self.textParse(fp.read())
             doc_list.append(word_list)
             full_text.append(word_list)
             class_list.append(1)
 
-            # word_list = self.textParse(open(os.path.join(email_file_path, 'email/ham/{0}.txt'.format(i))).read())
-
+            word_list = None
             file_name = os.path.join(email_file_path, 'email/ham/{0}.txt'.format(i))
-            file_obj = open(file_name, 'rb')
-            word_list = self.textParse(file_obj.read())
+            with open(file_name, 'rb') as fp:
+              word_list = self.textParse(fp.read())
 
             doc_list.append(word_list)
             full_text.append(word_list)
             class_list.append(0)
 
-        vocab_list = create_vocab_list(doc_list)
-        training_set = range(50)
-        test_set = []
+        '''
+        doc_list = 
+        [
+          ['codeine', '15mg', 'for', '203', 'visa', 'only', 'codeine', 'methylmorphine', 
+            'narcotic'], 
+          ['peter', 'with', 'jose', 'out', 'town', 'you', 'want', 'meet', 'once', 'while'], 
+          ['hydrocodone', ...
+        ]
 
-        for i in range(10):
-            rand_index = int(random.uniform(0, len(training_set)))
-            test_set.append(training_set[rand_index])
-            del(training_set[rand_index])
+        class_list = 
+        [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 
+         0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
+        '''
+
+        vocab_list = create_vocab_list(doc_list)
+        training_set = set(range(50))
+        '''
+        training_set = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 
+                        21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 
+                        40, 41, 42, 43, 44, 45, 46, 47, 48, 49}
+        '''
+        test_set = []
+        test_set.extend(random.sample(training_set, 10))
+        # test_set = [43, 37, 3, 19, 10, 34, 48, 8, 14, 17]
 
         train_mat = []
         train_classes = []
 
-        print(test_set)
-
         for doc_index in training_set:
-            train_mat.append(bag_of_words_to_vec_MN(vocab_list, doc_list[doc_index]))
-        pass
+            if doc_index not in test_set:
+              train_mat.append(bag_of_words_to_vec_MN(vocab_list, doc_list[doc_index]))
+              train_classes.append(class_list[doc_index])
+
+        p0_vect, p1_vect, p_abusive = trainNB0(np.array(train_mat), np.array(train_classes))
+
+        error_count = 0
+        for doc_index in test_set:
+            word_vector = bag_of_words_to_vec_MN(vocab_list, doc_list[doc_index])
+            if classify_NB(np.array(word_vector), p0_vect, p1_vect, p_abusive) != class_list[doc_index]:
+                error_count += 1
+                print('this classify is error!!!')
+
+        print('the error rate is {0}'.format(1.0 * error_count / len(test_set)))
 
 
 if __name__ == '__main__':
