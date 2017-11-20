@@ -202,14 +202,18 @@ class ClassifySpam(object):
 
             file_name = os.path.join(email_file_path, 'email/spam/{0}.txt'.format(i))
             file_obj = open(file_name, 'r')
-            print(file_obj.read())
-            word_list = None
+            word_list = self.textParse(file_obj.read())
 
             doc_list.append(word_list)
             full_text.append(word_list)
             class_list.append(1)
 
-            word_list = self.textParse(open(os.path.join(email_file_path, 'email/ham/{0}.txt'.format(i))).read())
+            # word_list = self.textParse(open(os.path.join(email_file_path, 'email/ham/{0}.txt'.format(i))).read())
+
+            file_name = os.path.join(email_file_path, 'email/ham/{0}.txt'.format(i))
+            file_obj = open(file_name, 'r')
+            word_list = self.textParse(file_obj.read())
+            
             doc_list.append(word_list)
             full_text.append(word_list)
             class_list.append(0)
