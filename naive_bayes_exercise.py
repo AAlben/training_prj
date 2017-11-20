@@ -185,6 +185,7 @@ class ClassifySpam(object):
 
     def textParse(self, content):
         import re
+        content = content.encode('utf-8')
         list_of_tokens = re.split(r'\W*', content)
         return [tok.lower() for tok in list_of_tokens if len(tok) > 2]
 
@@ -213,7 +214,7 @@ class ClassifySpam(object):
             file_name = os.path.join(email_file_path, 'email/ham/{0}.txt'.format(i))
             file_obj = open(file_name, 'r')
             word_list = self.textParse(file_obj.read())
-            
+
             doc_list.append(word_list)
             full_text.append(word_list)
             class_list.append(0)
