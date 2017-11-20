@@ -185,7 +185,7 @@ class ClassifySpam(object):
 
     def textParse(self, content):
         import re
-        content = content.decode('utf-8')
+        content = unicode(content, errors='ignore')
         list_of_tokens = re.split(r'\W*', content)
         return [tok.lower() for tok in list_of_tokens if len(tok) > 2]
 
