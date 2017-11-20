@@ -198,7 +198,13 @@ class ClassifySpam(object):
         email_file_path = '/home/lichenguang/code/Bayes_Data'
 
         for i in range(1, 26):
-            word_list = self.textParse(open(os.path.join(email_file_path, 'email/spam/{0}.txt'.format(i))).read())
+            # word_list = self.textParse(open(os.path.join(email_file_path, 'email/spam/{0}.txt'.format(i))).read())
+
+            file_name = os.path.join(email_file_path, 'email/spam/{0}.txt'.format(i))
+            file_obj = open(file_name, 'r')
+            print(file_obj.read())
+            word_list = None
+
             doc_list.append(word_list)
             full_text.append(word_list)
             class_list.append(1)
