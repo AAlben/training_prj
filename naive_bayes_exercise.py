@@ -231,34 +231,36 @@ class ClassifySpam(object):
         '''
 
         vocab_list = create_vocab_list(doc_list)
-        training_set = set(range(50))
-        '''
-        training_set = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 
-                        21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 
-                        40, 41, 42, 43, 44, 45, 46, 47, 48, 49}
-        '''
-        test_set = []
-        test_set.extend(random.sample(training_set, 10))
-        # test_set = [43, 37, 3, 19, 10, 34, 48, 8, 14, 17]
 
-        train_mat = []
-        train_classes = []
+        for test_index in range(5):          
+          training_set = set(range(50))
+          '''
+          training_set = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 
+                          21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 
+                          40, 41, 42, 43, 44, 45, 46, 47, 48, 49}
+          '''
+          test_set = []
+          test_set.extend(random.sample(training_set, 10))
+          # test_set = [43, 37, 3, 19, 10, 34, 48, 8, 14, 17]
 
-        for doc_index in training_set:
-            if doc_index not in test_set:
-              train_mat.append(bag_of_words_to_vec_MN(vocab_list, doc_list[doc_index]))
-              train_classes.append(class_list[doc_index])
+          train_mat = []
+          train_classes = []
 
-        p0_vect, p1_vect, p_abusive = trainNB0(np.array(train_mat), np.array(train_classes))
+          for doc_index in training_set:
+              if doc_index not in test_set:
+                train_mat.append(bag_of_words_to_vec_MN(vocab_list, doc_list[doc_index]))
+                train_classes.append(class_list[doc_index])
 
-        error_count = 0
-        for doc_index in test_set:
-            word_vector = bag_of_words_to_vec_MN(vocab_list, doc_list[doc_index])
-            if classify_NB(np.array(word_vector), p0_vect, p1_vect, p_abusive) != class_list[doc_index]:
-                error_count += 1
-                print('this classify is error!!!')
+          p0_vect, p1_vect, p_abusive = trainNB0(np.array(train_mat), np.array(train_classes))
 
-        print('the error rate is {0}'.format(1.0 * error_count / len(test_set)))
+          error_count = 0
+          for doc_index in test_set:
+              word_vector = bag_of_words_to_vec_MN(vocab_list, doc_list[doc_index])
+              if classify_NB(np.array(word_vector), p0_vect, p1_vect, p_abusive) != class_list[doc_index]:
+                  error_count += 1
+                  print('this classify is error!!! must be {0}'.format(class_list[doc_index]))
+
+          print('the error rate is {0}'.format(1.0 * error_count / len(test_set)))
 
 
 if __name__ == '__main__':
