@@ -9,27 +9,34 @@ from math import sqrt
 import os
 
 def read_file():
-    heaser = ['user_id', 'item_id', 'rating', 'timestamp']
+    header = ['userId', 'movieId', 'rating', 'timestamp']
     file_path = '/home/lichenguang/code/Recommendation_Data/ml-20m'
     file_name = 'ratings.csv'
-    data_frame = pd.read_csv(os.path.join(file_path, file_name), sep='\t', names=header)
-    users_unique_count = df.user_id.unique().shape[0]
-    items_unique_count = df.item_id.unique().shape[0]
+    data_frame = pd.read_csv(os.path.join(file_path, file_name), sep=',', names=header, skiprows=1)
+
+    data_frame = data_frame[data_frame['userId'] < 1000]
+    data_frame = data_frame[data_frame['movieId'] < 1000]
+    # data_frame = data_frame.iloc[0:1000, :]
+    print(data_frame)
+
+    users_unique_count = data_frame.userId.unique().shape[0]
+    items_unique_count = data_frame.movieId.unique().shape[0]
 
     print('all user is {0} ; all item is {1}'.format(users_unique_count, items_unique_count))
 
     train_data, test_data = cv.train_test_split(data_frame, test_size=0.25)
 
-    train_data_matrix = np.zeros((users_unique_count, items_unique_count))
-    for data_line in train_data.iteruples():
+    train_data_matrix = np.zeros((1000, 1000))
+    for data_line in train_data.itertuples():
+        # data_line = Pandas(Index=724, userId=7, movieId=3086, rating=4.0, timestamp=1011205452)
         train_data_matrix[data_line[1] - 1, data_line[2] - 1] = data_line[3]
 
-    test_data_matrix = np.zeros((users_unique_count, items_unique_count))
-    for data_line in test_data.iteruples():
+    test_data_matrix = np.zeros((1000, 1000))
+    for data_line in test_data.itertuples():
         test_data_matrix[data_line[1] - 1, data_line[2] - 1] = data_line[3]
 
-    user_similar = pairwise_distances(train_data_matrix, metrics='cosine')
-    item_similar = pairwise_distances(train_data_matrix.T, metrics='cosine')
+    user_similar = pairwise_distances(train_data_matrix, metric='cosine')
+    item_similar = pairwise_distances(train_data_matrix.T, metric='cosine')
 
     return (train_data_matrix, test_data_matrix, user_similar, item_similar)
 
