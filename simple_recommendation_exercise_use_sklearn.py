@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import time
-from sklearn import cross_validation as cv
+from sklearn import model_selection as ms
 from sklearn.metrics.pairwise import pairwise_distances
 from sklearn.metrics import mean_squared_error
 from math import sqrt
@@ -24,7 +24,7 @@ def read_file():
 
     print('all user is {0} ; all item is {1}'.format(users_unique_count, items_unique_count))
 
-    train_data, test_data = cv.train_test_split(data_frame, test_size=0.25)
+    train_data, test_data = ms.train_test_split(data_frame, test_size=0.25)
 
     train_data_matrix = np.zeros((1000, 1000))
     for data_line in train_data.itertuples():
