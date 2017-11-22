@@ -113,7 +113,7 @@ def calculate_inverted_list(data_frame):
     return division_result, inverted_frame
 
 
-def recommend(user_similar_matricx, inverted_frame):
+def recommend(user_similar_matricx, inverted_frame, recommend_item_K):
     user_id = 1
     column_name = 'user_{0}'.format(user_id)
 
@@ -138,8 +138,15 @@ def recommend(user_similar_matricx, inverted_frame):
         recommend_result[recommend_item] = similar_sum
 
     recommend_result = pd.Series(recommend_result)
-    sorted_recommend = recommend_result.sort_values(ascending=False)[:10]
+    sorted_recommend = recommend_result.sort_values(ascending=False)[:recommend_item_K]
     print(sorted_recommend)
+    return sorted_recommend
+
+
+def train_test_split_data(data_frame):
+    from sklearn import model_selection
+    train_data_frame, test_data_frame =  model_selection.train_test_split(data_frame, test_size=0.25)
+    return train_data_frame, test_data_frame
 
 
 if __name__ == '__main__':
@@ -160,5 +167,13 @@ if __name__ == '__main__':
             print('*' * 10)
             calculate_user_similar(data_frame, user_1_id, user_2_id)
 
-    user_similar_matricx, inverted_frame = calculate_inverted_list(data_frame)
-    recommend(user_similar_matricx, inverted_frame)
+    train_data_frame, test_data_frame = train_test_split_data(data_frame)
+
+    test_data_user_like_movies = test_data_frame[test_data_frame['userId'] == 1]['movieId'].unique()
+
+    user_similar_matricx, inverted_frame = calculate_inverted_list(train_data_frame)
+    sorted_recommend = recommend(user_similar_matricx, inverted_frame, test_data_user_like_movies.shape[0])
+    
+    for movieId in sorted_recommend.index:
+        if movieId in test_data_user_like_movies:
+            print('this movieId = {0} is real like movie'.format(movieId))
