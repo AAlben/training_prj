@@ -32,10 +32,13 @@ def calculate_user_similar(data_frame, user_1_id, user_2_id):
 
 
 def calculate_inverted_list(data_frame):
-    userid_list = range(1, 5)
+    userid_list = range(1, 11)
     uniq_movie_id = np.array([], dtype=int)
+    column_list = []
+    for userid in userid_list:
+        column_list.append('user_{0}'.format(userid))
 
-    rated_movie_count = pd.Series(None, index=['user_1', 'user_2', 'user_3', 'user_4'])
+    rated_movie_count = pd.Series(None, index=column_list)
 
     for userid in userid_list:
         user_rated_movie = data_frame[data_frame['userId'] == userid]['movieId'].unique()
@@ -51,13 +54,13 @@ def calculate_inverted_list(data_frame):
         dtype: float64
     '''
 
-    inverted_frame = pd.DataFrame(None, index=uniq_movie_id, columns=['user_1', 'user_2', 'user_3', 'user_4'])
+    inverted_frame = pd.DataFrame(None, index=uniq_movie_id, columns=column_list)
 
     for index in inverted_frame.index:
         rated_same_movie_users = data_frame[data_frame['movieId'] == index]['userId'].unique()
 
         for column in inverted_frame.keys():
-            user_id = int(column[-1])
+            user_id = int(column.split('_')[-1])
             if user_id in rated_same_movie_users:
                 inverted_frame.at[index, column] = 1
 
@@ -75,7 +78,7 @@ def calculate_inverted_list(data_frame):
         32         1    NaN      1      1
     '''
 
-    user_user_matricx = pd.DataFrame(None, index=['user_1', 'user_2', 'user_3', 'user_4'], columns=['user_1', 'user_2', 'user_3', 'user_4'])
+    user_user_matricx = pd.DataFrame(None, index=column_list, columns=column_list)
 
     for userid in userid_list:
         one_user_frame = inverted_frame[inverted_frame['user_{0}'.format(userid)] == 1].sum()
@@ -107,6 +110,36 @@ def calculate_inverted_list(data_frame):
         user_3   0.232172   0.140445          0  0.0690987
         user_4  0.0428571  0.0483934  0.0690987          0
     '''
+    return division_result, inverted_frame
+
+
+def recommend(user_similar_matricx, inverted_frame):
+    user_id = 1
+    column_name = 'user_{0}'.format(user_id)
+
+    user_similar = user_similar_matricx.loc['user_{0}'.format(user_id)]
+    sorted_user_similar = user_similar.sort_values(ascending=False)
+    K = 3
+    user_similar_k = sorted_user_similar.index[:K]
+
+    recommend_result = {}
+
+    for recommend_item in inverted_frame.index:
+
+        similar_sum = 0
+
+        if inverted_frame.loc[recommend_item][column_name] == 1:
+            continue
+
+        for similar_user_id in user_similar_k:
+            if inverted_frame.loc[recommend_item][similar_user_id] == 1:
+                similar_sum += user_similar_matricx.loc[column_name][similar_user_id]
+
+        recommend_result[recommend_item] = similar_sum
+
+    recommend_result = pd.Series(recommend_result)
+    sorted_recommend = recommend_result.sort_values(ascending=False)[:10]
+    print(sorted_recommend)
 
 
 if __name__ == '__main__':
@@ -127,4 +160,5 @@ if __name__ == '__main__':
             print('*' * 10)
             calculate_user_similar(data_frame, user_1_id, user_2_id)
 
-    calculate_inverted_list(data_frame)
+    user_similar_matricx, inverted_frame = calculate_inverted_list(data_frame)
+    recommend(user_similar_matricx, inverted_frame)
