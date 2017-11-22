@@ -17,9 +17,12 @@ def calculate_user_similar(data_frame, user_1_id, user_2_id):
 
     user_1_rated_movie = user_1_frame['movieId'].unique()
     user_2_rated_movie = user_2_frame['movieId'].unique()
+    print('userid {0} user rated movie count = {1}'.format(user_1_id, user_1_rated_movie.shape[0]))
+    print('userid {0} user rated movie count = {1}'.format(user_2_id, user_2_rated_movie.shape[0]))
 
     intersection_result = np.intersect1d(user_1_rated_movie, user_2_rated_movie)
     union_result = np.union1d(user_1_rated_movie, user_2_rated_movie)
+    print('two user intersection count = {0}'.format(intersection_result.shape[0]))
 
     similar_result_version1 = len(intersection_result) * 1.0/ len(union_result)
     print(similar_result_version1)
@@ -28,19 +31,100 @@ def calculate_user_similar(data_frame, user_1_id, user_2_id):
     print(similar_result_version2)
 
 
+def calculate_inverted_list(data_frame):
+    userid_list = range(1, 5)
+    uniq_movie_id = np.array([], dtype=int)
+
+    rated_movie_count = pd.Series(None, index=['user_1', 'user_2', 'user_3', 'user_4'])
+
+    for userid in userid_list:
+        user_rated_movie = data_frame[data_frame['userId'] == userid]['movieId'].unique()
+        uniq_movie_id = np.union1d(uniq_movie_id, user_rated_movie)
+        rated_movie_count['user_{0}'.format(userid)] = user_rated_movie.shape[0]
+
+    '''
+    rated_movie_count =
+        user_1    175.0
+        user_2    227.0
+        user_3    364.0
+        user_4    386.0
+        dtype: float64
+    '''
+
+    inverted_frame = pd.DataFrame(None, index=uniq_movie_id, columns=['user_1', 'user_2', 'user_3', 'user_4'])
+
+    for index in inverted_frame.index:
+        rated_same_movie_users = data_frame[data_frame['movieId'] == index]['userId'].unique()
+
+        for column in inverted_frame.keys():
+            user_id = int(column[-1])
+            if user_id in rated_same_movie_users:
+                inverted_frame.at[index, column] = 1
+
+    '''
+    inverted_frame =
+              user_1 user_2 user_3 user_4
+        1        NaN    NaN      1    NaN
+        2          1    NaN    NaN    NaN
+        3        NaN      1    NaN    NaN
+        6        NaN    NaN    NaN      1
+        10       NaN    NaN    NaN      1
+        19       NaN    NaN    NaN      1
+        24       NaN    NaN      1    NaN
+        29         1    NaN    NaN    NaN
+        32         1    NaN      1      1
+    '''
+
+    user_user_matricx = pd.DataFrame(None, index=['user_1', 'user_2', 'user_3', 'user_4'], columns=['user_1', 'user_2', 'user_3', 'user_4'])
+
+    for userid in userid_list:
+        one_user_frame = inverted_frame[inverted_frame['user_{0}'.format(userid)] == 1].sum()
+        user_user_matricx.loc['user_{0}'.format(userid)] = one_user_frame
+        user_user_matricx.loc['user_{0}'.format(userid)]['user_{0}'.format(userid)] = 0
+
+    '''
+    user_user_matricx = 
+               user_1 user_2 user_3 user_4
+        user_1      0      9     42      3
+        user_2      9      0     15      2
+        user_3     42     15      0      5
+        user_4      3      2      5      0
+    '''
+
+    rated_movie_count = np.sqrt(rated_movie_count)
+
+    division_result = user_user_matricx / rated_movie_count
+    division_result = division_result.T / rated_movie_count
+    division_result = division_result.T
+    
+    print(division_result)
+
+    '''
+    division_result = 
+                   user_1     user_2     user_3     user_4
+        user_1          0  0.0871081   0.232172  0.0428571
+        user_2  0.0871081          0   0.140445  0.0483934
+        user_3   0.232172   0.140445          0  0.0690987
+        user_4  0.0428571  0.0483934  0.0690987          0
+    '''
+
+
 if __name__ == '__main__':
     data_frame = read_csv_file()
-    user_1_id = 1
-    user_2_id = 2
 
-    uniq_users = data_frame['userId'].unique()
-    uniq_users = uniq_users[:10]
+    calculate_user_similar_flag = False
 
-    for user_id in uniq_users:
-        if user_id == 1:
-            continue
-        user_2_id = user_id
-        print('*' * 10)
-        print('userid = {0}'.format(user_id))
-        print('*' * 10)
-        calculate_user_similar(data_frame, user_1_id, user_2_id)
+    if calculate_user_similar_flag:
+        user_1_id = 1
+        uniq_users = [3]
+
+        for user_id in uniq_users:
+            if user_id == 1:
+                continue
+            user_2_id = user_id
+            print('*' * 10)
+            print('userid = {0}'.format(user_id))
+            print('*' * 10)
+            calculate_user_similar(data_frame, user_1_id, user_2_id)
+
+    calculate_inverted_list(data_frame)
