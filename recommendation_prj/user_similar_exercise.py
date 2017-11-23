@@ -8,6 +8,7 @@ def read_csv_file():
     file_name = 'ratings.csv'
     data_frame = pd.read_csv(os.path.join(file_path, file_name), sep=',', names=header, skiprows=1)
 
+    data_frame = data_frame.drop(['rating', 'timestamp'], axis=1)
     return data_frame
 
 
@@ -32,7 +33,9 @@ def calculate_user_similar(data_frame, user_1_id, user_2_id):
 
 
 def calculate_inverted_list(data_frame):
-    userid_list = range(1, 11)
+    userid_list = data_frame['userId'].unique()[:10]
+    # userid_list = [127607 121661  79011  26138 134047  17851  78914  67589  46580 120726]
+
     uniq_movie_id = np.array([], dtype=int)
     column_list = []
     for userid in userid_list:
@@ -110,16 +113,16 @@ def calculate_inverted_list(data_frame):
         user_3   0.232172   0.140445          0  0.0690987
         user_4  0.0428571  0.0483934  0.0690987          0
     '''
-    return division_result, inverted_frame
+    return division_result, inverted_frame, userid_list
 
 
-def recommend(user_similar_matricx, inverted_frame, recommend_item_K):
-    user_id = 1
+def recommend(user_similar_matricx, inverted_frame, recommend_item_K, recommend_user_id):
+    user_id = recommend_user_id
     column_name = 'user_{0}'.format(user_id)
 
     user_similar = user_similar_matricx.loc['user_{0}'.format(user_id)]
     sorted_user_similar = user_similar.sort_values(ascending=False)
-    K = 3
+    K = 10
     user_similar_k = sorted_user_similar.index[:K]
 
     recommend_result = {}
@@ -169,10 +172,12 @@ if __name__ == '__main__':
 
     train_data_frame, test_data_frame = train_test_split_data(data_frame)
 
-    test_data_user_like_movies = test_data_frame[test_data_frame['userId'] == 1]['movieId'].unique()
+    user_similar_matricx, inverted_frame, userid_list = calculate_inverted_list(train_data_frame)
 
-    user_similar_matricx, inverted_frame = calculate_inverted_list(train_data_frame)
-    sorted_recommend = recommend(user_similar_matricx, inverted_frame, test_data_user_like_movies.shape[0])
+    test_user_id = userid_list[0]
+    test_data_user_like_movies = test_data_frame[test_data_frame['userId'] == test_user_id]['movieId'].unique()
+    
+    sorted_recommend = recommend(user_similar_matricx, inverted_frame, test_data_user_like_movies.shape[0], test_user_id)
     
     for movieId in sorted_recommend.index:
         if movieId in test_data_user_like_movies:
