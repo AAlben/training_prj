@@ -15,11 +15,11 @@ def read_csv_file():
 def calculate_inverted_list(data_frame):
     groupby_movie = data_frame.groupby('movieId')
     groupby_user = data_frame.groupby('userId')
-
     user_count_frame = groupby_user.count()
-    user_count = user_count_frame.shape[0]
+    movie_count_frame = groupby_movie.count()
 
-    user_count = 10
+    import random
+    user_list = random.sample(groupby_user.groups.keys(), 50)
 
     user_matrix = {}
 
@@ -32,18 +32,22 @@ def calculate_inverted_list(data_frame):
         uniq_this_movie_users = groupby_movie.get_group(movieId)['userId']
 
         for userId in uniq_this_movie_users:
-            if userId >= user_count:
+            if userId not in user_list:
                 continue
 
             for other_userId in uniq_this_movie_users:
-                if other_userId >= user_count:
+                if other_userId not in user_list:
                     continue
                 if userId == other_userId:
                     continue
 
                 user_matrix[userId] = user_matrix.get(userId, {})
                 user_matrix[userId][other_userId] = user_matrix[userId].get(other_userId, 0)
-                user_matrix[userId][other_userId] += 1
+                
+                # old version
+                # user_matrix[userId][other_userId] += 1
+                
+                user_matrix[userId][other_userId] += 1.0 / np.log(1 + uniq_this_movie_users.shape[0])
 
     user_matrix = pd.DataFrame(user_matrix)
     '''
@@ -61,8 +65,8 @@ def calculate_inverted_list(data_frame):
         10  11.0   4.0  21.0   1.0   6.0   2.0  15.0   3.0   2.0   NaN
     '''
 
-    user_rated_movie_count = pd.Series(0, index=range(1, user_count + 1))
-    for userId in range(1, user_count + 1):
+    user_rated_movie_count = pd.Series(0, index=user_list)
+    for userId in user_rated_movie_count.keys():
         if userId in user_count_frame.index:
             user_rated_movie_count[userId] = user_count_frame['movieId'][userId]
 
@@ -85,7 +89,7 @@ def calculate_inverted_list(data_frame):
         9   0.051110       NaN  0.049443  0.031944       NaN       NaN  0.071221   
         10       NaN       NaN       NaN       NaN       NaN       NaN       NaN   
     '''
-    return division_result, groupby_user
+    return division_result, groupby_user, user_list, movie_count_frame
 
 
 def recommend(user_similar_matrix, groupby_user, recommend_item_K, recommend_user_id):
@@ -117,13 +121,44 @@ def train_test_split_data(data_frame):
     return train_data_frame, test_data_frame
 
 
+class CheckAlgorithm(object):
+
+    def __init__(self):
+        pass
+
+    def check_precision(self, recommend_value, test_data_value):
+        correct_index = 0
+        for value in recommend_value:
+            if value in test_data_value:
+                correct_index += 1
+
+        return correct_index * 1.0 / len(test_data_value)
+
+
+    def check_recall(self, recommend_value, test_data_value):
+        correct_index = 0
+        for value in recommend_value:
+            if value in test_data_value:
+                correct_index += 1
+
+        return correct_index * 1.0 / len(recommend_value)
+
+
+    def check_coverage(self):
+        pass
+        
+
+    def check_popilarity(self, movie_count_frame, recommend_value):
+        pass
+        
+
 if __name__ == '__main__':
     data_frame = read_csv_file()
     train_data_frame, test_data_frame = train_test_split_data(data_frame)
 
-    division_result, groupby_user = calculate_inverted_list(train_data_frame)
+    division_result, groupby_user, user_list, movie_count_frame = calculate_inverted_list(train_data_frame)
 
-    test_user_id = 1
+    test_user_id = user_list[0]
     test_data_user_like_movies = test_data_frame[test_data_frame['userId'] == test_user_id]['movieId'].unique()
 
     recommend_result = recommend(division_result, groupby_user, len(test_data_user_like_movies), test_user_id)
@@ -132,3 +167,10 @@ if __name__ == '__main__':
     for recommend_movie in recommend_result.keys():
         if recommend_movie in test_data_user_like_movies:
             print('this movieId = {0} is real like movie'.format(recommend_movie))
+
+    check_algorithm = CheckAlgorithm()
+    algorithm_recall = check_algorithm.check_recall(recommend_result.keys(), test_data_user_like_movies)
+    algorithm_precision = check_algorithm.check_precision(recommend_result.keys(), test_data_user_like_movies)
+
+    print('algorithm_recall = {0}'.format(algorithm_recall))
+    print('algorithm_precision = {0}'.format(algorithm_precision))
