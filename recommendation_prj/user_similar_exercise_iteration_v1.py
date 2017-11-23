@@ -107,10 +107,28 @@ def recommend(user_similar_matrix, groupby_user, recommend_item_K, recommend_use
 
     recommend_result = pd.Series(recommend_result)
     recommend_result = recommend_result.sort_values(ascending=False)
-    print(recommend_result.iloc[:recommend_item_K])
+    
+    return recommend_result.iloc[:recommend_item_K]
+
+
+def train_test_split_data(data_frame):
+    from sklearn import model_selection
+    train_data_frame, test_data_frame =  model_selection.train_test_split(data_frame, test_size=0.25)
+    return train_data_frame, test_data_frame
 
 
 if __name__ == '__main__':
     data_frame = read_csv_file()
-    division_result, groupby_user = calculate_inverted_list(data_frame)
-    recommend(division_result, groupby_user, 10, 1)
+    train_data_frame, test_data_frame = train_test_split_data(data_frame)
+
+    division_result, groupby_user = calculate_inverted_list(train_data_frame)
+
+    test_user_id = 1
+    test_data_user_like_movies = test_data_frame[test_data_frame['userId'] == test_user_id]['movieId'].unique()
+
+    recommend_result = recommend(division_result, groupby_user, len(test_data_user_like_movies), test_user_id)
+    print(recommend_result)
+
+    for recommend_movie in recommend_result.keys():
+        if recommend_movie in test_data_user_like_movies:
+            print('this movieId = {0} is real like movie'.format(recommend_movie))
