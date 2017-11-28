@@ -18,8 +18,7 @@ def calculate_inverted_list(data_frame):
     user_count_frame = groupby_user.count()
     movie_count_frame = groupby_movie.count()
 
-    import random
-    user_list = random.sample(groupby_user.groups.keys(), 50)
+    user_list = groupby_movie.groups.keys()
 
     user_matrix = {}
 
