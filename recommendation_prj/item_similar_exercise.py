@@ -2,14 +2,17 @@ import pandas as pd
 import numpy as np
 import os
 
-from multiprocessing import Process
-from multiprocessing.sharedctypes import Value, Array
+from itertools import combinations
+import random
+from sklearn.metrics.pairwise import pairwise_distances
+from scipy.spatial.distance import cdist
 
 
 def read_csv_file():
     header = ['userId', 'movieId', 'rating', 'timestamp']
     file_path = '/home/lichenguang/code/Recommendation_Data/ml-20m'
-    file_name = 'ratings.csv'
+    file_name = 'ratings_5000.csv'
+    # file_name = 'ratings.csv'
     data_frame = pd.read_csv(os.path.join(file_path, file_name), sep=',', names=header, skiprows=1)
 
     data_frame = data_frame.drop(['rating', 'timestamp'], axis=1)
@@ -19,126 +22,91 @@ def read_csv_file():
 def calculate_inverted_list(data_frame):
     groupby_movie = data_frame.groupby('movieId')
     groupby_user = data_frame.groupby('userId')
-    user_count_frame = groupby_user.count()
-    movie_count_frame = groupby_movie.count()
 
-    movie_list = groupby_movie.groups.keys()
-    movieId_series = pd.Series(movie_list)
-    movieId_series_T = pd.Series(movieId_series.keys(), index=movie_list)
+    data_frame['value'] = pd.Series(1, index=data_frame.index)
+    data_frame_pivot = data_frame.pivot(index='userId', columns='movieId', values='value').dropna(axis=1, how='all')
 
-    item_matrix = np.zeros((movie_count_frame.shape[0], movie_count_frame.shape[0]))
-
-    for userId, group_index_list in groupby_user.groups.items():
-        p = Process(target=process_calculate, args=(item_matrix, movie_count_frame, group_index_list, movieId_series_T, data_frame))
-        p.start()
-
-    print(item_matrix)
-
-def process_calculate(item_matrix, movie_count_frame, group_index_list, movieId_series_T, data_frame):            
-        one_row_matrix = np.zeros((1, movie_count_frame.shape[0]))
-        one_column_matrix = np.ones((movie_count_frame.shape[0], 1))
-
-        for group_index in group_index_list:
-            matrix_index = movieId_series_T[data_frame.iloc[group_index]['movieId']]
-            one_row_matrix[0][matrix_index] += 1
-
-        multiplication_matrix = one_row_matrix * one_column_matrix
-        multiplication_matrix = np.triu(multiplication_matrix)
-        diagonal = np.diag(np.diag(multiplication_matrix))
-        half_similar_matrix = multiplication_matrix - diagonal
-        half_similar_matrix += half_similar_matrix.T
-        item_matrix += half_similar_matrix
-
-def f():    
-
-    for userId, group_index_list in groupby_user.groups.items():
-        
-        one_row_matrix = np.zeros((1, movie_count_frame.shape[0]))
-        one_column_matrix = np.ones((movie_count_frame.shape[0], 1))
-
-        for group_index in group_index_list:
-            matrix_index = movieId_series_T[data_frame.iloc[group_index]['movieId']]
-            one_row_matrix[0][matrix_index] += 1
-
-        multiplication_matrix = one_row_matrix * one_column_matrix
-        multiplication_matrix = np.triu(multiplication_matrix)
-        diagonal = np.diag(np.diag(multiplication_matrix))
-        half_similar_matrix = multiplication_matrix - diagonal
-        half_similar_matrix += half_similar_matrix.T
-        item_matrix += half_similar_matrix
-
-    print(item_matrix)
-
+    movie_index_series = pd.Series(range(len(data_frame_pivot.columns)), index=data_frame_pivot.columns)
+    # print(movie_index_series)
     '''
-    item_matrix = 
-                173     447     2283    2391    2719    3895    4397    4878
-        173        NaN    39.0    67.0   811.0   690.0   181.0   179.0  1841.0   
-        447       39.0     NaN    14.0    40.0    29.0    12.0    13.0    24.0   
-        2283      67.0    14.0     NaN   134.0    42.0    12.0    10.0    93.0   
-        2391     811.0    40.0   134.0     NaN   540.0   164.0    90.0  1141.0   
-        2719     690.0    29.0    42.0   540.0     NaN   146.0    80.0   756.0   
-        3895     181.0    12.0    12.0   164.0   146.0     NaN    24.0   181.0   
-        4397     179.0    13.0    10.0    90.0    80.0    24.0     NaN   147.0   
-        4878    1841.0    24.0    93.0  1141.0   756.0   181.0   147.0     NaN 
+        movieId
+        1            0
+        2            1
+        3            2
+        5            3
+        6            4
+        7            5
+        8            6
+        9            7
+        10           8
+        11           9    
     '''
 
-    rated_movie_user_count = pd.Series(0, index=movie_list)
-    for movieId in rated_movie_user_count.keys():
-        if movieId in movie_count_frame.index:
-            rated_movie_user_count[movieId] = movie_count_frame['userId'][movieId]
-
-    rated_movie_user_count = np.sqrt(rated_movie_user_count)
-    division_result = item_matrix / rated_movie_user_count    
-    division_result = division_result.T / rated_movie_user_count
-    division_result = division_result.T
+    groupby_user_count = groupby_user.count().sort_values(by='movieId', ascending=False)
+    # print(groupby_user_count[groupby_user_count['movieId'] > 100])
 
     '''
-    division_result = 
-                  329       1090      1588      1768      1840      2460      2577  
-        329          NaN  0.162158  0.088673  0.003958  0.050143  0.048100  0.018795   
-        1090    0.162158       NaN  0.120980  0.010210  0.103116  0.084807  0.035328   
-        1588    0.088673  0.120980       NaN  0.017144  0.065166  0.055483  0.027916   
-        1768    0.003958  0.010210  0.017144       NaN  0.016115  0.014879       NaN   
-        1840    0.050143  0.103116  0.065166  0.016115       NaN  0.045200  0.048108   
-        2460    0.048100  0.084807  0.055483  0.014879  0.045200       NaN  0.015143   
-        2577    0.018795  0.035328  0.027916       NaN  0.048108  0.015143       NaN   
-        2987    0.185868  0.279868  0.151397  0.013088  0.097185  0.080947  0.041439   
-        3234    0.004101  0.005291  0.010661       NaN       NaN       NaN       NaN   
-        3977    0.139609  0.210938  0.141456  0.015333  0.071128  0.060283  0.032596   
+    max_count_movieId = 480
+    max_count_userId = 11
+    print(data_frame[data_frame['userId'] == max_count_userId])
+          userId  movieId  value
+    992       11      384      1
+    1429      11    60514      1   
+    ''' 
+
+    movie_item_similar_matrix = data_frame_pivot.values
+    '''
+        movieId
+        1         1.0
+        39        1.0
     '''
 
-    print(division_result)
+    movie_item_similar_matrix[np.isnan(movie_item_similar_matrix)] = 0
+    movie_similar_result_matrix = np.dot(movie_item_similar_matrix.T, movie_item_similar_matrix)
+    '''
+        [[ 11.   1.   2. ...,   1.   1.   1.]
+         [  1.   3.   0. ...,   0.   0.   0.]
+         [  2.   0.   7. ...,   0.   0.   0.]
+         ..., 
+         [  1.   0.   0. ...,   1.   1.   1.]
+         [  1.   0.   0. ...,   1.   1.   1.]
+         [  1.   0.   0. ...,   1.   1.   1.]]
+        length = (1757, 1757)
+    '''
 
-    import pickle
-    pickle.dump(division_result, open('division_result.p', 'wb'))
+    denominator = np.diag(movie_similar_result_matrix)
+    matrix_diag = np.diag(-1 * denominator)
+    movie_similar_diag_0_matrix = movie_similar_result_matrix + matrix_diag
 
-    return division_result, groupby_user, movie_list, user_count_frame
+    movie_similar_diag_0_matrix = 1.0 * movie_similar_diag_0_matrix / denominator
+    movie_similar_diag_0_matrix = movie_similar_diag_0_matrix.T / denominator
+    movie_similar_diag_0_matrix = movie_similar_diag_0_matrix.T
+    movie_similar_result_frame = pd.DataFrame(movie_similar_diag_0_matrix, index=data_frame_pivot.columns, columns=data_frame_pivot.columns)
+
+    print(movie_similar_diag_0_matrix)
+
+    return movie_similar_result_frame, groupby_user
 
 
-def recommend(item_similar_matrix, groupby_user, recommend_item_K, recommend_movie_id, recommend_user_id):
-    with_other_item_similar = item_similar_matrix[recommend_movie_id]
-
-    sorted_similar = with_other_item_similar.sort_values(ascending=False)
-
-    K = 10
-
-    sorted_similar = sorted_similar.iloc[:K]
+def recommend(movie_similar_result_frame, groupby_user, recommend_item_K, recommend_user_id):
+    K = recommend_item_K
 
     recommend_result = {}
 
-    for similar_movieId in sorted_similar.keys():
-        user_rated_movieId_list = groupby_user.get_group(recommend_user_id)['movieId']
+    user_rated_movieId_list = groupby_user.get_group(recommend_user_id)['movieId']
+    for user_rated_movieId in user_rated_movieId_list:
+        with_other_item_similar = movie_similar_result_frame[user_rated_movieId]
+        sorted_similar = with_other_item_similar.sort_values(ascending=False).iloc[:K]
 
-        if similar_movieId in user_rated_movieId_list:
-            recommend_result[similar_movieId] = recommend_result.get(similar_movieId, 0)
-            recommend_result[similar_movieId] += item_similar_matrix[recommend_movie_id][similar_movieId]
+        for sorted_similar_movieId in sorted_similar.keys():
+            if sorted_similar_movieId in user_rated_movieId_list:
+                continue
+            recommend_result[sorted_similar_movieId] = recommend_result.get(sorted_similar_movieId, 0)
+            recommend_result[sorted_similar_movieId] += sorted_similar[sorted_similar_movieId]
 
-    recommend_result = pd.Series(recommend_result)
-    recommend_result = recommend_result.sort_values(ascending=False)
-    
-    print(recommend_result)
-
-    return recommend_result.iloc[:recommend_item_K]
+    recommend_result_series = pd.Series(recommend_result)
+    # print(recommend_result_series)
+    return recommend_result_series
 
 
 def train_test_split_data(data_frame):
@@ -181,45 +149,21 @@ class CheckAlgorithm(object):
 if __name__ == '__main__':
     data_frame = read_csv_file()
     train_data_frame, test_data_frame = train_test_split_data(data_frame)
+    movie_similar_result_frame, groupby_user = calculate_inverted_list(train_data_frame)    
 
-    division_result, groupby_user, movie_list, user_count_frame = calculate_inverted_list(train_data_frame)
+    recommend_user_id = random.choice(list(groupby_user.groups.keys()))
 
-    # test_movie_id = movie_list[0]
-    # import random
-    # test_user_id_list = random.sample(groupby_user.groups.keys(), 50)
+    recommend_result_series = recommend(movie_similar_result_frame, groupby_user, 100, recommend_user_id)
 
-    # for test_user_id in test_user_id_list:
-    #     recommend_result = recommend(division_result, groupby_user, 10, test_movie_id, test_user_id)
-    #     print(recommend_result)
-    '''
-    recommend_result = 
-        35227     0.968211
-        136268    0.847327
-        60159     0.837163
-        3907      0.831285
-        73611     0.830864
-        31181     0.812670
-        51703     0.774685
-        103842    0.754271
-        23599     0.745975
-        34576     0.744168
-        dtype: float64    
-    '''
-
-    '''
-    test_data_user_like_movies = test_data_frame[test_data_frame['userId'] == test_user_id]['movieId'].unique()
-
-    print(recommend_result)
-
-    for recommend_movie in recommend_result.keys():
+    test_data_user_like_movies = test_data_frame[test_data_frame['userId'] == recommend_user_id]['movieId'].unique()
+    for recommend_movie in recommend_result_series.keys():
         if recommend_movie in test_data_user_like_movies:
             print('this movieId = {0} is real like movie'.format(recommend_movie))
 
     check_algorithm = CheckAlgorithm()
-    algorithm_recall = check_algorithm.check_recall(recommend_result.keys(), test_data_user_like_movies)
-    algorithm_precision = check_algorithm.check_precision(recommend_result.keys(), test_data_user_like_movies)
+    algorithm_recall = check_algorithm.check_recall(recommend_result_series.keys(), test_data_user_like_movies)
+    algorithm_precision = check_algorithm.check_precision(recommend_result_series.keys(), test_data_user_like_movies)
 
     print('algorithm_recall = {0}'.format(algorithm_recall))
     print('algorithm_precision = {0}'.format(algorithm_precision))
 
-    '''
