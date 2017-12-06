@@ -7,26 +7,26 @@ def pandas_exercise():
     set_index = range(1, 10, 3)
 
     df = pd.DataFrame(None, index=set_index, columns=['user_1', 'user_2'])
-    print(df)
 
+    # 定位
     print(df.loc[4])
+    # df.ix
+    # df.iloc
 
+    # 赋值
     for index in df.index:
         df.at[index, 'user_1'] = index * index
         df.at[index, 'user_2'] = index * 2
 
+    # 创建新列，并赋值
+    ret_frame['rev_value'] = np.ones(len(user_rated_movieId_list))
+
+    # 值，列，index    
     for column in df.keys():
         print(column)
-        
-    print(df)
-
-    result = df / [1, 2]
-
-    print(result)
-
-    print(df.T)
-
-    print(9/227.0)
+    # df.values
+    # df.columns
+    # df.index
 
 
 def pandas_groupby_exercise():
