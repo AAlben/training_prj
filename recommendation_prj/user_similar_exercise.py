@@ -1,6 +1,74 @@
 import pandas as pd
 import numpy as np
+from numpy import *
 import os
+from scipy.spatial import distance
+
+
+class KMeansExercise(object):       
+
+    def __init__(self):
+        pass 
+
+    def loadDataSet(self, filename):
+        data_frame = pd.read_csv(filename, sep='\t', header=None, prefix='X')
+        return data_frame
+
+
+    def distEclud(self, vecA, vecB):
+        # return sqrt(sum(power(vecA - vecB, 2))) #la.norm(vecA-vecB)
+        return distance.cdist(vecA, vecB, 'minkowski', p=2.)
+
+
+    def randCent(self, dataSet, k):
+        m, n = dataSet.shape
+
+        centroids = np.mat(np.zeros((k, n)))
+
+        for j in range(n):
+            minJ = np.min(dataSet[:, j])
+            rangeJ = float(np.max(dataSet[:, j]) - minJ)
+            centroids[:, j] = np.mat(minJ + rangeJ * np.random.rand(k, 1))
+
+        return centroids
+
+
+
+    def kMeans(self, dataSet, k, distMeas=distEclud, createCent=randCent):
+        m, n = dataSet.shape
+
+        clusterAssment = np.mat(np.zeros((m, 2)))
+        centroids = createCent(dataSet, k)
+
+        clusterChanged = True
+
+        while clusterChanged:
+            clusterChanged = False
+
+            for i in range(m):
+                minDist = np.inf
+                minIndex = -1
+
+                for j in range(k):
+                    distJI = distMeas(centroids[j, :], np.mat(dataSet[i, :]))
+
+                    if distJI < minDist:
+                        minDist = distJI
+                        minIndex = j
+
+                if clusterAssment[i, 0] != minIndex:
+                    clusterChanged = True
+
+                clusterAssment[i, :] = np.array([minIndex, minDist ** 2])
+
+            # print(centroids)
+
+            for cent in range(k):
+                ptsInclust = dataSet[np.nonzero(clusterAssment[:, 0].A == cent)[0]]
+                centroids[cent, :] = ptsInclust.mean(axis=0)
+
+        return centroids, clusterAssment
+
 
 def read_csv_file():
     header = ['userId', 'movieId', 'rating', 'timestamp']
@@ -8,7 +76,7 @@ def read_csv_file():
     file_name = 'ratings.csv'
     data_frame = pd.read_csv(os.path.join(file_path, file_name), sep=',', names=header, skiprows=1)
 
-    data_frame = data_frame.drop(['rating', 'timestamp'], axis=1)
+    data_frame = data_frame.drop(['timestamp'], axis=1)
     return data_frame
 
 
@@ -33,6 +101,26 @@ def calculate_user_similar(data_frame, user_1_id, user_2_id):
 
 
 def calculate_inverted_list(data_frame):
+    data_frame = data_frame.iloc[0:1000]
+
+    groupby_movie = data_frame.groupby('movieId')
+    groupby_user = data_frame.groupby('userId')
+
+    data_frame_pivot = data_frame.pivot(index='movieId', columns='userId', values='rating').dropna(axis=0, how='all')
+
+    movie_item_with_user_matrix = data_frame_pivot.as_matrix()
+    movie_item_with_user_matrix[np.isnan(movie_item_with_user_matrix)] = 0
+
+    # use k-Means
+
+    k_mean_exercise = KMeansExercise()
+    centroids, clusterAssment = k_mean_exercise.kMeans(movie_item_with_user_matrix, 4, k_mean_exercise.distEclud, k_mean_exercise.randCent)
+
+    print(clusterAssment)
+
+    return None
+
+
     userid_list = data_frame['userId'].unique()[:10]
     # userid_list = [127607 121661  79011  26138 134047  17851  78914  67589  46580 120726]
 
@@ -174,6 +262,8 @@ if __name__ == '__main__':
 
     user_similar_matricx, inverted_frame, userid_list = calculate_inverted_list(train_data_frame)
 
+    '''
+
     test_user_id = userid_list[0]
     test_data_user_like_movies = test_data_frame[test_data_frame['userId'] == test_user_id]['movieId'].unique()
     
@@ -182,3 +272,5 @@ if __name__ == '__main__':
     for movieId in sorted_recommend.index:
         if movieId in test_data_user_like_movies:
             print('this movieId = {0} is real like movie'.format(movieId))
+
+    '''
