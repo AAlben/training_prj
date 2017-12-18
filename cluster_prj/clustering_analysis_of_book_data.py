@@ -45,7 +45,9 @@ def structuring_data(book_rating_frame, user_frame, book_frame=None):
         print(age_with_item_result.sort_values(by=column_name, axis=0, ascending=False).iloc[:5])
 
 
-def clustering_data(join_frame):
+def clustering_data(book_rating_frame):
+
+    print(clustering_data)
     pass
 
 
@@ -57,4 +59,6 @@ if __name__ == '__main__':
     user_frame = load_data_file(file_path, file_name_list[1], 'ISO-8859-1')
     book_frame = load_data_file(file_path, file_name_list[2], 'ISO-8859-1')
 
-    structuring_data(book_rating_frame, user_frame, book_frame)
+    # structuring_data(book_rating_frame, user_frame, book_frame)
+
+    clustering_data(book_rating_frame)
