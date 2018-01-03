@@ -9,9 +9,14 @@ def pandas_exercise():
     df = pd.DataFrame(None, index=set_index, columns=['user_1', 'user_2'])
 
     # 定位
-    print(df.loc[4])
-    # df.ix
-    # df.iloc
+    print(df.loc[4]) # 值定位
+    # df.ix - index
+    # df.iloc - index
+
+    # 整理列，去掉不用的
+    # df = df[['user_1']]
+    # df = df[['user_2']]
+    # df = df[['user_1, user_2']]
 
     # 赋值
     for index in df.index:
